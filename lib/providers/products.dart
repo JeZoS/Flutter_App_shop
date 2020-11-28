@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:shop_ss/models/http_exception.dart';
 import 'package:shop_ss/providers/product.dart';
 import 'package:http/http.dart' as http;
 import "dart:convert";
@@ -72,6 +73,9 @@ class Products with ChangeNotifier {
       final response = await http.get(url);
       final extractedData = json.decode(response.body) as Map<String, dynamic>;
       final List<Product> loadedProducts = [];
+      if (extractedData == null) {
+        return;
+      }
       extractedData.forEach((prodId, prodData) {
         loadedProducts.add(Product(
           id: prodId,
@@ -135,18 +139,19 @@ class Products with ChangeNotifier {
     }
   }
 
-  void deleteProduct(String id) {
+  Future<void> deleteProduct(String id) async {
     final url = 'https://shop-ss.firebaseio.com/products/$id.json';
     final existingProductIndex =
         _items.indexWhere((element) => element.id == id);
     var existingProduct = _items[existingProductIndex];
-    http.delete(url).then((value) {
-      existingProduct = null;
-    }).catchError((onError) {
-      _items.insert(existingProductIndex, existingProduct);
-      notifyListeners();
-    });
     _items.removeWhere((element) => element.id == id);
     notifyListeners();
+    final response = await http.delete(url);
+    if (response.statusCode >= 400) {
+      _items.insert(existingProductIndex, existingProduct);
+      notifyListeners();
+      throw HttpException('Could not delete product');
+    }
+    existingProduct = null;
   }
 }
