@@ -66,6 +66,7 @@ class Auth with ChangeNotifier {
           'expiryDate': _expiryDate.toIso8601String(),
         },
       );
+      print(json.decode(userData));
       prefs.setString('userData', userData);
     } catch (error) {
       throw error;
@@ -94,13 +95,13 @@ class Auth with ChangeNotifier {
     }
     _token = extractedData['token'];
     _userId = extractedData['userId'];
-    _expiryDate = extractedData['expiryDate'];
+    _expiryDate = expiryDate;
     notifyListeners();
     _autoLogout();
     return true;
   }
 
-  void logout() {
+  Future<void> logout() async {
     _userId = null;
     _token = null;
     _expiryDate = null;
@@ -109,6 +110,8 @@ class Auth with ChangeNotifier {
       _authTimer = null;
     }
     notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    prefs.clear();
   }
 
   void _autoLogout() {
